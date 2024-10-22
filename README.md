@@ -40,9 +40,9 @@
 2. 安装[xmake](https://xmake.io/#/zh-cn/getting_started)
 3. 编译工程
     ```shell
-    xmake b    
+    xmake b xf_fal   
     ```
 4. 运行工程
     ```shell
-    xmake r   
+    xmake r xf_fal  
     ```
