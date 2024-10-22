@@ -1,4 +1,4 @@
-# falsh 抽象层
+# FLASH 抽象层
 
 本仓库参考了RT-Thread的[FAL](https://github.com/RT-Thread-packages/fal/blob/master/README_ZH.md)
 
