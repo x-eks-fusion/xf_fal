@@ -139,16 +139,20 @@ const xf_fal_partition_t *xf_fal_get_partition_table(size_t *len)
 
 xf_err_t xf_fal_set_partition_table_temp(xf_fal_partition_t *table, size_t len)
 {
-    if (!g_fal_obj.is_init || !table || !len) {
+    if (!g_fal_obj.is_init) {
+        return XF_ERR_UNINIT;
+    }
+    if (!table || !len) {
         return XF_ERR_INVALID_ARG;
     }
 
-    check_and_update_part_cache(table, len);
+    xf_err_t xf_ret;
+    xf_ret = check_and_update_part_cache(table, len);
+
     g_fal_obj.partition.table = table;
     g_fal_obj.partition.table_len = len;
 
-    return XF_OK;
-
+    return xf_ret;
 }
 
 xf_err_t xf_fal_partition_read(const xf_fal_partition_t *part, uint32_t addr, uint8_t *buf, size_t size)
@@ -156,7 +160,10 @@ xf_err_t xf_fal_partition_read(const xf_fal_partition_t *part, uint32_t addr, ui
     xf_err_t result = XF_OK;
     const xf_fal_flash_dev_t *flash_dev = NULL;
 
-    if (!g_fal_obj.is_init || !part || !buf || !size) {
+    if (!g_fal_obj.is_init) {
+        return XF_ERR_UNINIT;
+    }
+    if (!part || !buf || !size) {
         return XF_ERR_INVALID_ARG;
     }
     if (addr + size > part->len) {
@@ -184,7 +191,10 @@ xf_err_t xf_fal_partition_write(const xf_fal_partition_t *part, uint32_t addr, c
     xf_err_t result = XF_OK;
     const xf_fal_flash_dev_t *flash_dev = NULL;
 
-    if (!g_fal_obj.is_init || !part || !buf || !size) {
+    if (!g_fal_obj.is_init) {
+        return XF_ERR_UNINIT;
+    }
+    if (!part || !buf || !size) {
         return XF_ERR_INVALID_ARG;
     }
     if (addr + size > part->len) {
@@ -212,7 +222,10 @@ xf_err_t xf_fal_partition_erase(const xf_fal_partition_t *part, uint32_t addr, s
     xf_err_t result = XF_OK;
     const xf_fal_flash_dev_t *flash_dev = NULL;
 
-    if (!g_fal_obj.is_init || !part || !size) {
+    if (!g_fal_obj.is_init) {
+        return XF_ERR_UNINIT;
+    }
+    if (!part || !size) {
         return XF_ERR_INVALID_ARG;
     }
     if (addr + size > part->len) {
@@ -282,7 +295,6 @@ static const xf_fal_flash_dev_t *flash_device_find_by_part(const xf_fal_partitio
 
     return g_fal_obj.partition.cache[part - g_fal_obj.partition.table].flash_dev;
 }
-
 
 static xf_err_t check_and_update_part_cache(const xf_fal_partition_t *table, size_t len)
 {
