@@ -1,12 +1,12 @@
 /**
  * @file xf_fal_config_internal.h
  * @author cangyu (sky.kirto@qq.com)
- * @brief 
+ * @brief xf_fal 内部配置。
  * @version 0.1
  * @date 2024-10-18
- * 
+ *
  * @copyright Copyright (c) 2024, CorAL. All rights reserved.
- * 
+ *
  */
 
 #ifndef __XF_FAL_CONFIG_INTERNAL_H__
