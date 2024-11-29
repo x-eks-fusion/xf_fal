@@ -9,6 +9,13 @@
  *
  */
 
+/**
+ * @cond (XFAPI_USER || XFAPI_PORT || XFAPI_INTERNAL)
+ * @defgroup group_xf_fal xf_fal
+ * @brief xf_fal Flash 抽象层 FAL (Flash Abstraction Layer).
+ * @endcond
+ */
+
 #ifndef __XF_FAL_H__
 #define __XF_FAL_H__
 
@@ -16,6 +23,13 @@
 
 #include "xf_fal_config_internal.h"
 #include "xf_utils.h"
+
+/**
+ * @cond XFAPI_USER
+ * @addtogroup group_xf_fal
+ * @endcond
+ * @{
+ */
 
 #ifdef __cplusplus
 extern "C" {
@@ -185,5 +199,10 @@ void xf_fal_show_part_table(void);
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
+
+/**
+ * End of addtogroup group_xf_fal
+ * @}
+ */
 
 #endif // __XF_FAL_H__
