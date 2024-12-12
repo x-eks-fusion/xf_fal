@@ -1,8 +1,11 @@
 #include <stdio.h>
 #include "xf_fal.h"
+#include "mock_flash.h"
 
 int main(void)
 {
+    mock_flash_register_to_xf_fal();
+
     uint8_t read_buf[16] = {0};
     uint8_t write_buf[16] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
     xf_err_t result;
@@ -22,6 +25,25 @@ int main(void)
     if (!part) {
         printf("Partition not found!\n");
         return -1;
+    }
+
+    // 写入之前要擦除数据
+    result = xf_fal_partition_erase(part, 0, part->len);
+    if (result != XF_OK) {
+        printf("Partition erase failed: %d\n", result);
+        return -1;
+    }
+
+    // 读取数据并打印
+    result = xf_fal_partition_read(part, 0, read_buf, sizeof(read_buf));
+    if (result == XF_OK) {
+        printf("The partition was successfully. Data: ");
+        for (size_t i = 0; i < sizeof(read_buf); i++) {
+            printf("%02X ", read_buf[i]);
+        }
+        printf("\n");
+    } else {
+        printf("Partition read after erase failed: %d\n", result);
     }
 
     // 写入数据到分区
