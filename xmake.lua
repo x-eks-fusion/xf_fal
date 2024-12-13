@@ -1,9 +1,9 @@
 add_rules("mode.debug", "mode.release")
-includes("../../xf_utils/xf_utils/xmake.lua")
+includes("xf_utils/xmake.lua")
 
 -- xf_fal 所有的内容
 function add_xf_fal() 
-    add_xf_utils("../../xf_utils/xf_utils")
+    add_xf_utils("xf_utils/xf_utils")
     add_files("src/**.c")
     add_includedirs("src")
 end 
