@@ -25,6 +25,10 @@ extern "C" {
 #define XF_FAL_PARTITION_TABLE_NUM 4
 #define XF_FAL_DEV_NAME_MAX 24
 #define XF_FAL_CACHE_NUM 16
+#define XF_FAL_DEFAULT_FLASH_DEVICE_NAME    "chip_flash"
+#define XF_FAL_DEFAULT_PARTITION_NAME       "storage"
+#define XF_FAL_DEFAULT_PARTITION_OFFSET     0
+#define XF_FAL_DEFAULT_PARTITION_LENGTH     4096
 
 /* ==================== [Typedefs] ========================================== */
 
