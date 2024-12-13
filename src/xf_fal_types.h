@@ -17,13 +17,6 @@
 #include "xf_fal_config_internal.h"
 #include "xf_utils.h"
 
-/**
- * @cond (XFAPI_USER || XFAPI_PORT)
- * @addtogroup group_xf_fal
- * @endcond
- * @{
- */
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -35,16 +28,19 @@ extern "C" {
 /* ==================== [Typedefs] ========================================== */
 
 /**
+ * @cond (XFAPI_PORT)
+ * @addtogroup group_xf_fal
+ * @endcond
+ * @{
+ */
+
+/**
  * @brief flash 操作集。
  *
  * - 由对接层提供给 xf_fal 调用。
  * - 每个操作集合对应一个 flash 设备。
  * - 除 xf_fal_flash_ops_t.init 和 xf_fal_flash_ops_t.deinit 外，必须全部实现。
  *   对于内部 flash, 不一定需要 xf_fal_flash_ops_t.init 和 xf_fal_flash_ops_t.deinit.
- *
- * @cond XFAPI_PORT
- * @todo fal 操作实现时是否必须支持按字节读写？
- * @endcond
  */
 typedef struct _xf_fal_flash_ops_t {
     /**
@@ -104,6 +100,18 @@ typedef struct _xf_fal_flash_ops_t {
 } xf_fal_flash_ops_t;
 
 /**
+ * End of addtogroup group_xf_fal
+ * @}
+ */
+
+/**
+ * @cond (XFAPI_USER || XFAPI_PORT)
+ * @addtogroup group_xf_fal
+ * @endcond
+ * @{
+ */
+
+/**
  * @brief flash 设备结构体。
  * @attention 结构体是可见的，但禁止用户修改其中内容。
  */
@@ -134,7 +142,9 @@ typedef struct _xf_fal_flash_dev_t {
 
 /**
  * @brief flash 分区结构体。
- * 描述了各分区的分区名、分区在哪个 flash、分区在 flash 上的偏移地址和长度。
+ *
+ * 描述各分区的分区名、分区在哪个 flash、分区在 flash 上的偏移地址和长度。
+ *
  * @attention 结构体是可见的，但禁止用户修改其中内容。
  */
 typedef struct _xf_fal_partition_t {
@@ -143,14 +153,32 @@ typedef struct _xf_fal_partition_t {
                                          *   见 @ref xf_fal_flash_dev_t.name .
                                          */
     /**
-     * @brief flash 设备上的该分区偏移地址。必须对齐到扇区大小。
+     * @brief flash 设备上的该分区偏移地址。
+     * @note 推荐对齐到扇区大小。
+     *       如果不对齐，并且对接实现的 xf_fal_flash_ops_t 也没有实现跨扇区支持，
+     *       xf_fal 可能无法擦除当前分区.
      */
     size_t  offset;
     /**
-     * @brief flash 设备上的该分区长度。必须对齐到扇区大小。
+     * @brief flash 设备上的该分区长度。
+     * @note 推荐对齐到扇区大小。
+     *       如果不对齐，并且对接实现的 xf_fal_flash_ops_t 也没有实现跨扇区支持，
+     *       xf_fal 可能无法擦除当前分区.
      */
     size_t  len;
 } xf_fal_partition_t;
+
+/**
+ * End of addtogroup group_xf_fal
+ * @}
+ */
+
+/**
+ * @cond (XFAPI_INTERNAL)
+ * @addtogroup group_xf_fal
+ * @endcond
+ * @{
+ */
 
 /**
  * @brief xf_fal 分区缓存。
@@ -175,6 +203,17 @@ typedef struct _xf_fal_ctx_t {
      */
     volatile uint8_t            is_init;
 
+#if XF_FAL_LOCK_IS_ENABLE
+    /**
+     * @brief 互斥锁失效时的临时手段。
+     */
+    volatile uint8_t            is_lock;
+    /**
+     * @brief 保护 xf_fal_ctx_t 的互斥锁。
+     */
+    xf_lock_t                   mutex;
+#endif
+
     /**
      * @brief flash 设备表（数组）指针。
      *
@@ -189,6 +228,7 @@ typedef struct _xf_fal_ctx_t {
      * @brief 分区表（数组）的数组。
      * @code
      * xf_fal_ctx_t.partition_table[IDX]     --> xf_fal_partition_t partition_table[N]
+     * // xf_fal_ctx_t.partition_table 内的每个元素指向含有 N 个分区的分区表.
      * @endcode
      */
     const xf_fal_partition_t   *partition_table[XF_FAL_PARTITION_TABLE_NUM];
@@ -203,17 +243,23 @@ typedef struct _xf_fal_ctx_t {
 
     /**
      * @brief 缓存"分区和 flash 设备关系"的缓存表（数组）指针。
-     * 
+     *
      * 用于从分区快速找到关联的 flash 设备。
-     * 
+     * 由于分区表可能不止一张(不连续), cache 不能直接用索引寻址。
+     *
      * @attention 缓存数组个数至少和分区的个数一样多。
      */
     xf_fal_cache_t              cache[XF_FAL_CACHE_NUM];
     /**
      * @brief 已缓存的个数。
      */
-    size_t                      cached_num;
+    volatile size_t             cached_num;
 } xf_fal_ctx_t;
+
+/**
+ * End of addtogroup group_xf_fal
+ * @}
+ */
 
 /* ==================== [Global Prototypes] ================================= */
 
@@ -222,10 +268,5 @@ typedef struct _xf_fal_ctx_t {
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
-
-/**
- * End of addtogroup group_xf_fal
- * @}
- */
 
 #endif // __XF_FAL_TYPES_H__

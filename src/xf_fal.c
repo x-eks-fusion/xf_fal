@@ -11,6 +11,7 @@
 
 /* ==================== [Includes] ========================================== */
 
+#include "xf_utils.h"
 #include "xf_fal.h"
 
 /* ==================== [Defines] =========================================== */
@@ -39,10 +40,71 @@ static xf_fal_ctx_t    *sp_fal_ctx = &fal_ctx;
 
 /* ==================== [Macros] ============================================ */
 
+#define XF_FAL_CTX_MUTEX_TRY_INIT() \
+    do { \
+        if (NULL == sp_fal()->mutex) { \
+            xf_lock_init(&sp_fal()->mutex); \
+        } \
+    } while (0)
+
+#define XF_FAL_CTX_MUTEX_TRY_DEINIT() \
+    do { \
+        if (NULL != sp_fal()->mutex) { \
+            xf_lock_destroy(sp_fal()->mutex); \
+            sp_fal()->mutex = NULL; \
+        } \
+    } while (0)
+
+#define XF_FAL_CTX_TRYLOCK__RETURN_ON_FAILURE(_ret) \
+    do { \
+        if (sp_fal()->mutex) { \
+            if (XF_LOCK_FAIL == xf_lock_trylock(sp_fal()->mutex)) { \
+                return _ret; \
+            } \
+            break; \
+        } \
+        if (true == sp_fal()->is_lock) { \
+            return _ret; \
+        } \
+        sp_fal()->is_lock = true; \
+    } while (0)
+
+#define XF_FAL_CTX_TRYLOCK__ANYWAY() \
+    do { \
+        if (sp_fal()->mutex) { \
+            xf_lock_trylock(sp_fal()->mutex); \
+            break; \
+        } \
+        sp_fal()->is_lock = true; \
+    } while (0)
+
+#define XF_FAL_CTX_UNLOCK() \
+    do { \
+        if (sp_fal()->mutex) { \
+            xf_lock_unlock(sp_fal()->mutex); \
+            break; \
+        } \
+        sp_fal()->is_lock = false; \
+    } while (0);
+
+#if XF_FAL_LOCK_IS_ENABLE == 0
+#undef XF_FAL_CTX_MUTEX_TRY_INIT
+#undef XF_FAL_CTX_MUTEX_TRY_DEINIT
+#undef XF_FAL_CTX_TRYLOCK__RETURN_ON_FAILURE
+#undef XF_FAL_CTX_TRYLOCK__ANYWAY
+#undef XF_FAL_CTX_UNLOCK
+#define XF_FAL_CTX_MUTEX_TRY_INIT()
+#define XF_FAL_CTX_MUTEX_TRY_DEINIT()
+#define XF_FAL_CTX_TRYLOCK__RETURN_ON_FAILURE(_ret)
+#define XF_FAL_CTX_TRYLOCK__ANYWAY()
+#define XF_FAL_CTX_UNLOCK()
+#endif
+
 /* ==================== [Global Functions] ================================== */
 
 xf_err_t xf_fal_register_flash_device(const xf_fal_flash_dev_t *p_dev)
 {
+    xf_err_t xf_ret = XF_OK;
     int idle_idx;
 
     if (NULL == p_dev) {
@@ -54,12 +116,20 @@ xf_err_t xf_fal_register_flash_device(const xf_fal_flash_dev_t *p_dev)
        ) {
         return XF_ERR_INVALID_PORT;
     }
+    if (xf_fal_check_register_state()) {
+        return XF_FAIL;
+    }
+
+    XF_FAL_CTX_MUTEX_TRY_INIT();
+
+    XF_FAL_CTX_TRYLOCK__RETURN_ON_FAILURE(XF_ERR_BUSY);
 
     /* TODO 未检查 flash 设备名是否重复 */
     idle_idx = -1;
     for (size_t i = 0; i < XF_FAL_FLASH_DEVICE_NUM; i++) {
         if (p_dev == sp_fal()->flash_device_table[i]) {
-            return XF_ERR_INITED;
+            xf_ret = XF_ERR_INITED;
+            goto l_unlock_ret;
         }
         if ((NULL == sp_fal()->flash_device_table[i])
                 && (-1 == idle_idx)) {
@@ -67,27 +137,42 @@ xf_err_t xf_fal_register_flash_device(const xf_fal_flash_dev_t *p_dev)
         }
     }
     if (idle_idx == -1) {
-        return XF_ERR_RESOURCE;
+        xf_ret = XF_ERR_RESOURCE;
+        goto l_unlock_ret;
     }
+
     sp_fal()->flash_device_table[idle_idx] = p_dev;
 
-    return XF_OK;
+l_unlock_ret:;
+    XF_FAL_CTX_UNLOCK();
+
+    return xf_ret;
 }
 
 xf_err_t xf_fal_register_partition_table(
     const xf_fal_partition_t *p_table, size_t table_len)
 {
+    xf_err_t xf_ret = XF_OK;
     int idle_idx;
 
     if ((NULL == p_table)
             || ((0 == table_len))) {
         return XF_ERR_INVALID_ARG;
     }
+    if (xf_fal_check_register_state()) {
+        return XF_FAIL;
+    }
 
+    XF_FAL_CTX_MUTEX_TRY_INIT();
+
+    XF_FAL_CTX_TRYLOCK__RETURN_ON_FAILURE(XF_ERR_BUSY);
+
+    /* TODO 未检查分区名是否重复 */
     idle_idx = -1;
     for (size_t i = 0; i < XF_FAL_PARTITION_TABLE_NUM; i++) {
         if (p_table == sp_fal()->partition_table[i]) {
-            return XF_ERR_INITED;
+            xf_ret = XF_ERR_INITED;
+            goto l_unlock_ret;
         }
         if ((NULL == sp_fal()->partition_table[i])
                 && (-1 == idle_idx)) {
@@ -95,21 +180,34 @@ xf_err_t xf_fal_register_partition_table(
         }
     }
     if (idle_idx == -1) {
-        return XF_ERR_RESOURCE;
+        xf_ret = XF_ERR_RESOURCE;
+        goto l_unlock_ret;
     }
+
     sp_fal()->partition_table[idle_idx]     = p_table;
     sp_fal()->partition_table_len[idle_idx] = table_len;
 
-    return XF_OK;
+l_unlock_ret:;
+    XF_FAL_CTX_UNLOCK();
+
+    return xf_ret;
 }
 
 xf_err_t xf_fal_unregister_flash_device(const xf_fal_flash_dev_t *p_dev)
 {
+    xf_err_t xf_ret = XF_OK;
     int dev_idx;
 
     if (NULL == p_dev) {
         return XF_ERR_INVALID_ARG;
     }
+    if (xf_fal_check_register_state()) {
+        return XF_FAIL;
+    }
+
+    XF_FAL_CTX_MUTEX_TRY_INIT();
+
+    XF_FAL_CTX_TRYLOCK__RETURN_ON_FAILURE(XF_ERR_BUSY);
 
     dev_idx = -1;
     for (size_t i = 0; i < XF_FAL_FLASH_DEVICE_NUM; i++) {
@@ -119,21 +217,33 @@ xf_err_t xf_fal_unregister_flash_device(const xf_fal_flash_dev_t *p_dev)
         }
     }
     if (dev_idx == -1) {
-        return XF_ERR_NOT_FOUND;
+        xf_ret = XF_ERR_NOT_FOUND;
+        goto l_unlock_ret;
     }
 
     sp_fal()->flash_device_table[dev_idx] = NULL;
 
-    return XF_OK;
+l_unlock_ret:;
+    XF_FAL_CTX_UNLOCK();
+
+    return xf_ret;
 }
 
 xf_err_t xf_fal_unregister_partition_table(const xf_fal_partition_t *p_table)
 {
+    xf_err_t xf_ret = XF_OK;
     int table_idx;
 
     if (NULL == p_table) {
         return XF_ERR_INVALID_ARG;
     }
+    if (xf_fal_check_register_state()) {
+        return XF_FAIL;
+    }
+
+    XF_FAL_CTX_MUTEX_TRY_INIT();
+
+    XF_FAL_CTX_TRYLOCK__RETURN_ON_FAILURE(XF_ERR_BUSY);
 
     table_idx = -1;
     for (size_t i = 0; i < XF_FAL_PARTITION_TABLE_NUM; i++) {
@@ -142,13 +252,17 @@ xf_err_t xf_fal_unregister_partition_table(const xf_fal_partition_t *p_table)
         }
     }
     if (table_idx == -1) {
-        return XF_ERR_NOT_FOUND;
+        xf_ret = XF_ERR_NOT_FOUND;
+        goto l_unlock_ret;
     }
 
     sp_fal()->partition_table[table_idx]        = NULL;
     sp_fal()->partition_table_len[table_idx]    = 0;
 
-    return XF_OK;
+l_unlock_ret:;
+    XF_FAL_CTX_UNLOCK();
+
+    return xf_ret;
 }
 
 bool xf_fal_check_register_state(void)
@@ -192,7 +306,7 @@ xf_err_t xf_fal_init(void)
         return xf_ret;
     }
 
-    sp_fal()->is_init = 1;
+    sp_fal()->is_init = true;
 
     return XF_OK;
 }
@@ -216,7 +330,8 @@ xf_err_t xf_fal_deinit(void)
         device_table->ops.deinit();
     }
 
-    sp_fal()->is_init = 0;
+    sp_fal()->cached_num    = 0;
+    sp_fal()->is_init       = false;
 
     return XF_OK;
 }
@@ -232,6 +347,8 @@ const xf_fal_flash_dev_t *xf_fal_flash_device_find(const char *name)
     if (name == NULL) {
         return NULL;
     }
+
+    /* 暂无递归互斥锁，此处不加锁没太大问题 */
 
     for (i = 0; i < XF_FAL_FLASH_DEVICE_NUM; i++) {
         device_table = sp_fal()->flash_device_table[i];
@@ -249,24 +366,36 @@ const xf_fal_flash_dev_t *xf_fal_flash_device_find(const char *name)
 const xf_fal_flash_dev_t *xf_fal_flash_device_find_by_part(
     const xf_fal_partition_t *part)
 {
+    const xf_fal_flash_dev_t *flash_dev = NULL;
+    size_t i;
+
     if (!xf_fal_check_register_state()) {
         XF_LOGE(TAG, "Not registered.");
         return NULL;
     }
+    if (!part) {
+        return NULL;
+    }
 
-    size_t i;
+    XF_FAL_CTX_TRYLOCK__RETURN_ON_FAILURE(NULL);
+
     for (i = 0; i < sp_fal()->cached_num; i++) {
         if (sp_fal()->cache[i].partition == part) {
-            return sp_fal()->cache[i].flash_dev;
+            flash_dev = sp_fal()->cache[i].flash_dev;
+            goto l_unlock_ret;
         }
     }
 
-    return NULL;
+l_unlock_ret:;
+    XF_FAL_CTX_UNLOCK();
+
+    return flash_dev;
 }
 
 const xf_fal_partition_t *xf_fal_partition_find(const char *name)
 {
     const xf_fal_partition_t *p_table;
+    const xf_fal_partition_t *part = NULL;
     size_t table_len;
     size_t i;
     size_t j;
@@ -278,6 +407,8 @@ const xf_fal_partition_t *xf_fal_partition_find(const char *name)
         return NULL;
     }
 
+    XF_FAL_CTX_TRYLOCK__RETURN_ON_FAILURE(NULL);
+
     for (i = 0; i < XF_FAL_PARTITION_TABLE_NUM; i++) {
         p_table     = sp_fal()->partition_table[i];
         table_len   = sp_fal()->partition_table_len[i];
@@ -286,12 +417,16 @@ const xf_fal_partition_t *xf_fal_partition_find(const char *name)
         }
         for (j = 0; j < table_len; j++) {
             if (0 == strncmp(name, p_table[j].name, XF_FAL_DEV_NAME_MAX)) {
-                return &p_table[j];
+                part = &p_table[j];
+                goto l_unlock_ret;
             }
         }
     }
 
-    return NULL;
+l_unlock_ret:;
+    XF_FAL_CTX_UNLOCK();
+
+    return part;
 }
 
 xf_err_t xf_fal_partition_read(
@@ -456,6 +591,7 @@ void xf_fal_show_part_table(void)
 
 static xf_err_t check_and_update_cache(void)
 {
+    xf_err_t xf_ret = XF_OK;
     const xf_fal_flash_dev_t *flash_dev;
     const xf_fal_partition_t *p_table;
     const xf_fal_partition_t *part;
@@ -463,6 +599,7 @@ static xf_err_t check_and_update_cache(void)
     size_t i;
     size_t j;
 
+    XF_FAL_CTX_TRYLOCK__RETURN_ON_FAILURE(XF_ERR_BUSY);
     sp_fal()->cached_num = 0;
     for (i = 0; i < XF_FAL_PARTITION_TABLE_NUM; i++) {
         p_table     = sp_fal()->partition_table[i];
@@ -483,7 +620,8 @@ static xf_err_t check_and_update_cache(void)
                 XF_LOGE(TAG, "Initialize failed! "
                         "Partition(%s) offset address(%ld) out of flash bound(<%d).",
                         part->name, part->offset, (int)flash_dev->len);;
-                return XF_FAIL;
+                xf_ret = XF_FAIL;
+                goto l_unlock_ret;
             }
 
             if (sp_fal()->cached_num >= XF_FAL_CACHE_NUM) {
@@ -497,5 +635,8 @@ static xf_err_t check_and_update_cache(void)
         }
     }
 
-    return XF_OK;
+l_unlock_ret:;
+    XF_FAL_CTX_UNLOCK();
+
+    return xf_ret;
 }

@@ -20,6 +20,7 @@ extern "C" {
 
 /* ==================== [Defines] =========================================== */
 
+#define XF_FAL_LOCK_DISABLE 0
 #define XF_FAL_FLASH_DEVICE_NUM 4
 #define XF_FAL_PARTITION_TABLE_NUM 4
 #define XF_FAL_DEV_NAME_MAX 24

@@ -47,7 +47,7 @@ extern "C" {
  * @brief 获取 xf_fal 上下文。
  *
  * @note 通过此接口可获取当前 xf_fal 注册状态、注册的 flash 设备和注册的分区表。
- *       用于动态扩展分区表。
+ *       可用于动态扩展分区表。
  * @attention 禁止直接修改其中内容。
  *
  * @return xf_fal_ctx_t*        xf_fal 上下文
@@ -60,10 +60,14 @@ const xf_fal_ctx_t *xf_fal_get_ctx(void);
  * @attention xf_fal 内仅保存 flash 设备指针，
  *            用户必须保证在使用 xf_fal 的整个过程中 flash 设备可访问。
  * @attention 用户应保证 falsh 设备名不重复。
+ * @attention 注册完毕后需要调用 xf_fal_init() 初始化 xf_fal .
+ * @attention 已初始化后禁止注册或注销，需调用  xf_fal_deinit() 反初始化.
  *
  * @param p_dev falsh 设备。
  * @return xf_err_t
  *      - XF_OK                 成功
+ *      - XF_FAIL               xf_fal 已初始化，禁止注册注销
+ *      - XF_ERR_BUSY           xf_fal 被别处占用
  *      - XF_ERR_INVALID_ARG    无效参数
  *      - XF_ERR_INVALID_PORT   无效对接, p_dev->ops 的 read, write, erase 存在 NULL
  *      - XF_ERR_INITED         p_dev 已注册
@@ -77,11 +81,15 @@ xf_err_t xf_fal_register_flash_device(const xf_fal_flash_dev_t *p_dev);
  * @attention xf_fal 内仅保存分区表指针，
  *            用户必须保证在使用 xf_fal 的整个过程中分区表可访问。
  * @attention 用户应保证分区表内的分区不发生交叠。
+ * @attention 注册完毕后需要调用 xf_fal_init() 初始化 xf_fal .
+ * @attention 已初始化后禁止注册或注销，需调用  xf_fal_deinit() 反初始化.
  *
  * @param p_table   分区表数组。注意不是分区。
  * @param table_len 分区表表长。单位：分区个数。
  * @return xf_err_t
  *      - XF_OK                 成功
+ *      - XF_FAIL               xf_fal 已初始化，禁止注册注销
+ *      - XF_ERR_BUSY           xf_fal 被别处占用
  *      - XF_ERR_INVALID_ARG    无效参数
  *      - XF_ERR_INVALID_PORT   无效对接, p_dev->ops 的 read, write, erase 存在 NULL
  *      - XF_ERR_INITED         p_dev 已注册
@@ -93,9 +101,13 @@ xf_err_t xf_fal_register_partition_table(
 /**
  * @brief 从 xf_fal 中注销一个 falsh 设备。
  *
+ * @attention 已初始化后禁止注册或注销，需调用  xf_fal_deinit() 反初始化.
+ *
  * @param p_dev 要注销的 falsh 设备。
  * @return xf_err_t
  *      - XF_OK                 成功
+ *      - XF_FAIL               xf_fal 已初始化，禁止注册注销
+ *      - XF_ERR_BUSY           xf_fal 被别处占用
  *      - XF_ERR_INVALID_ARG    无效参数
  *      - XF_ERR_NOT_FOUND      未找到
  */
@@ -104,9 +116,13 @@ xf_err_t xf_fal_unregister_flash_device(const xf_fal_flash_dev_t *p_dev);
 /**
  * @brief 从 xf_fal 中注销一个分区表。
  *
+ * @attention 已初始化后禁止注册或注销，需调用  xf_fal_deinit() 反初始化.
+ *
  * @param p_table   分区表数组。注意不是分区。
  * @return xf_err_t
  *      - XF_OK                 成功
+ *      - XF_FAIL               xf_fal 已初始化，禁止注册注销
+ *      - XF_ERR_BUSY           xf_fal 被别处占用
  *      - XF_ERR_INVALID_ARG    无效参数
  *      - XF_ERR_NOT_FOUND      未找到
  */
@@ -118,7 +134,7 @@ xf_err_t xf_fal_unregister_partition_table(const xf_fal_partition_t *p_table);
  */
 
 /**
- * @cond XFAPI_USER
+ * @cond (XFAPI_USER || XFAPI_PORT)
  * @addtogroup group_xf_fal
  * @endcond
  * @{
@@ -238,8 +254,7 @@ xf_err_t xf_fal_partition_write(
 /**
  * @brief 擦除指定分区数据。
  *
- * @note 擦除数据的大小需要是 flash 扇区大小的整数倍。
- *       即必须对齐到扇区。
+ * @note 擦除数据的大小推荐对齐到 flash 扇区大小的整数倍。
  *       扇区大小见 @ref xf_fal_flash_dev_t.sector_size .
  *       可以通过 xf_fal_flash_device_find_by_part() 获取。
  *
