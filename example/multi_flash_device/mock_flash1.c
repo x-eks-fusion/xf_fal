@@ -94,14 +94,14 @@ static xf_err_t mock_flash_init(void)
 {
     printf("Mock flash initialized.\n");
     memset(mock_flash_memory, 0xFF, sizeof(mock_flash_memory));
-    return 0;
+    return XF_OK;
 }
 
 static xf_err_t mock_flash_deinit(void)
 {
     printf("Mock flash deinitialized.\n");
     memset(mock_flash_memory, 0xFF, sizeof(mock_flash_memory));
-    return 0;
+    return XF_OK;
 }
 
 static xf_err_t mock_flash_read(size_t src_offset, void *dst, size_t size)
@@ -140,7 +140,11 @@ static xf_err_t mock_flash_erase(size_t offset, size_t size)
     if (offset + size > sizeof(mock_flash_memory)) {
         return XF_FAIL;
     }
-    /* TODO 对齐到页大小 */
+    /* TODO 对齐到扇区大小擦除 */
+    // if ((offset % mock_flash_dev.sector_size != 0)
+    //         || ((size % mock_flash_dev.sector_size != 0))) {
+    //     return XF_FAIL;
+    // }
     memset(&mock_flash_memory[mock_flash_dev.addr + offset], 0xFF, size);
     return XF_OK;
 }
