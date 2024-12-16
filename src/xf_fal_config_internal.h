@@ -47,11 +47,11 @@ extern "C" {
 #endif
 
 #ifndef XF_FAL_DEFAULT_FLASH_DEVICE_NAME
-#   define XF_FAL_DEFAULT_FLASH_DEVICE_NAME     "chip_flash"
+#   define XF_FAL_DEFAULT_FLASH_DEVICE_NAME     "default_flash"
 #endif
 
 #ifndef XF_FAL_DEFAULT_PARTITION_NAME
-#   define XF_FAL_DEFAULT_PARTITION_NAME        "storage"
+#   define XF_FAL_DEFAULT_PARTITION_NAME        "default_part"
 #endif
 
 #ifndef XF_FAL_DEFAULT_PARTITION_OFFSET
