@@ -338,25 +338,22 @@ xf_err_t xf_fal_deinit(void)
 
 const xf_fal_flash_dev_t *xf_fal_flash_device_find(const char *name)
 {
-    const xf_fal_flash_dev_t *device_table;
+    const xf_fal_flash_dev_t *flash_device;
     size_t i;
 
-    if (sp_fal()->is_init) {
-        return NULL;
-    }
-    if (name == NULL) {
+    if (!name) {
         return NULL;
     }
 
     /* 暂无递归互斥锁，此处不加锁没太大问题 */
 
     for (i = 0; i < XF_FAL_FLASH_DEVICE_NUM; i++) {
-        device_table = sp_fal()->flash_device_table[i];
-        if (!device_table) {
+        flash_device = sp_fal()->flash_device_table[i];
+        if (!flash_device) {
             continue;
         }
-        if (0 == strncmp(name, device_table->name, XF_FAL_DEV_NAME_MAX)) {
-            return device_table;
+        if (0 == strncmp(name, flash_device->name, XF_FAL_DEV_NAME_MAX)) {
+            return flash_device;
         }
     }
 
@@ -400,10 +397,7 @@ const xf_fal_partition_t *xf_fal_partition_find(const char *name)
     size_t i;
     size_t j;
 
-    if (!xf_fal_check_register_state()) {
-        return NULL;
-    }
-    if (!sp_fal()->is_init || !name) {
+    if (!name) {
         return NULL;
     }
 
