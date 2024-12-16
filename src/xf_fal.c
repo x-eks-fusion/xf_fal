@@ -34,8 +34,8 @@ static xf_err_t check_and_update_cache(void);
 
 /* ==================== [Static Variables] ================================== */
 
-static xf_fal_ctx_t     fal_ctx = {0};
-static xf_fal_ctx_t    *sp_fal_ctx = &fal_ctx;
+static xf_fal_ctx_t     s_fal_ctx = {0};
+static xf_fal_ctx_t    *sp_fal_ctx = &s_fal_ctx;
 #define sp_fal()        (sp_fal_ctx)
 
 /* ==================== [Macros] ============================================ */
@@ -524,9 +524,8 @@ xf_err_t xf_fal_partition_erase(
     }
     if (offset + size > part->len) {
         XF_LOGE(TAG, "Partition write error! "
-                "Partition(%s) address(0x%08x) out of bound(0x%08x).", part->name,
-                (int)(offset + size),
-                (int)part->len);
+                "Partition(%s) address(0x%08x) out of bound(0x%08x).",
+                part->name, (int)(offset + size), (int)part->len);
         return XF_ERR_INVALID_ARG;
     }
 

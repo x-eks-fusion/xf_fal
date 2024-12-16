@@ -217,10 +217,10 @@ typedef struct _xf_fal_ctx_t {
     /**
      * @brief flash 设备表（数组）指针。
      *
-     * 可以改变 flash_device_table 指向；
-     * 不可通过 flash_device_table 修改：
-     * - flash_device_table[0] (xf_fal_flash_dev_t *xxx)
-     * - 和 flash_device_table[0].xxx .
+     * 可以改变 flash_device_table[N] 的指向；
+     * 不可通过 flash_device_table[N] 修改：
+     * - flash_device_table[N] (xf_fal_flash_dev_t *xxx)
+     * - 和 flash_device_table[N].xxx .
      */
     const xf_fal_flash_dev_t   *flash_device_table[XF_FAL_FLASH_DEVICE_NUM];
 

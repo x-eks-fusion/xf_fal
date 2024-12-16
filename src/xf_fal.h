@@ -55,15 +55,15 @@ extern "C" {
 const xf_fal_ctx_t *xf_fal_get_ctx(void);
 
 /**
- * @brief 注册一个 falsh 设备到 xf_fal 中。
+ * @brief 注册一个 flash 设备到 xf_fal 中。
  *
  * @attention xf_fal 内仅保存 flash 设备指针，
  *            用户必须保证在使用 xf_fal 的整个过程中 flash 设备可访问。
- * @attention 用户应保证 falsh 设备名不重复。
+ * @attention 用户应保证 flash 设备名不重复。否则只会找到第一个。
  * @attention 注册完毕后需要调用 xf_fal_init() 初始化 xf_fal .
  * @attention 已初始化后禁止注册或注销，需调用  xf_fal_deinit() 反初始化.
  *
- * @param p_dev falsh 设备。
+ * @param p_dev flash 设备。
  * @return xf_err_t
  *      - XF_OK                 成功
  *      - XF_FAIL               xf_fal 已初始化，禁止注册注销
@@ -71,7 +71,7 @@ const xf_fal_ctx_t *xf_fal_get_ctx(void);
  *      - XF_ERR_INVALID_ARG    无效参数
  *      - XF_ERR_INVALID_PORT   无效对接, p_dev->ops 的 read, write, erase 存在 NULL
  *      - XF_ERR_INITED         p_dev 已注册
- *      - XF_ERR_RESOURCE       xf_fal 的设备表已满
+ *      - XF_ERR_RESOURCE       xf_fal 的设备表数组已满，需增大 XF_FAL_FLASH_DEVICE_NUM
  */
 xf_err_t xf_fal_register_flash_device(const xf_fal_flash_dev_t *p_dev);
 
@@ -80,7 +80,7 @@ xf_err_t xf_fal_register_flash_device(const xf_fal_flash_dev_t *p_dev);
  *
  * @attention xf_fal 内仅保存分区表指针，
  *            用户必须保证在使用 xf_fal 的整个过程中分区表可访问。
- * @attention 用户应保证分区表内的分区不发生交叠。
+ * @attention 用户应保证分区表内的分区不发生交叠，且分区不重名，否则只会找到第一个。
  * @attention 注册完毕后需要调用 xf_fal_init() 初始化 xf_fal .
  * @attention 已初始化后禁止注册或注销，需调用  xf_fal_deinit() 反初始化.
  *
@@ -91,19 +91,18 @@ xf_err_t xf_fal_register_flash_device(const xf_fal_flash_dev_t *p_dev);
  *      - XF_FAIL               xf_fal 已初始化，禁止注册注销
  *      - XF_ERR_BUSY           xf_fal 被别处占用
  *      - XF_ERR_INVALID_ARG    无效参数
- *      - XF_ERR_INVALID_PORT   无效对接, p_dev->ops 的 read, write, erase 存在 NULL
- *      - XF_ERR_INITED         p_dev 已注册
- *      - XF_ERR_RESOURCE       xf_fal 的设备表已满
+ *      - XF_ERR_INITED         p_table 已注册
+ *      - XF_ERR_RESOURCE       xf_fal 的分区表数组已满，需增大 XF_FAL_PARTITION_TABLE_NUM
  */
 xf_err_t xf_fal_register_partition_table(
     const xf_fal_partition_t *p_table, size_t table_len);
 
 /**
- * @brief 从 xf_fal 中注销一个 falsh 设备。
+ * @brief 从 xf_fal 中注销一个 flash 设备。
  *
  * @attention 已初始化后禁止注册或注销，需调用  xf_fal_deinit() 反初始化.
  *
- * @param p_dev 要注销的 falsh 设备。
+ * @param p_dev 要注销的 flash 设备。
  * @return xf_err_t
  *      - XF_OK                 成功
  *      - XF_FAIL               xf_fal 已初始化，禁止注册注销
@@ -233,8 +232,6 @@ xf_err_t xf_fal_partition_read(
  * @note 读写数据的大小需要是 flash 最小读写颗粒大小的整数倍。
  *       见 @ref xf_fal_flash_dev_t.io_size .
  * @note 写入前一定要确认目标地址已经被擦除。
- * @note 写入的地址可以不对齐页。
- * @note 如果 size 小于页大小则无需等待。
  *
  * @param part       分区表中的指定分区。
  *                   可以通过 xf_fal_partition_find() 获取。
@@ -260,7 +257,7 @@ xf_err_t xf_fal_partition_write(
  *
  * @param part       分区表中的指定分区。
  *                   可以通过 xf_fal_partition_find() 获取。
- * @param offset     待擦除的地址。
+ * @param offset     待擦除的地址。相对当前分区起始地址的偏移地址。
  * @param size       要擦除的数据大小，单位：字节。
  * @return xf_err_t
  *      - XF_OK                 成功
@@ -275,6 +272,7 @@ xf_err_t xf_fal_partition_erase(
  * @brief 擦除指定分区所有数据。
  *
  * @param part 分区表的指定分区。
+ *             可以通过 xf_fal_partition_find() 获取。
  * @return xf_err_t
  *      - XF_OK                 成功
  *      - XF_FAIL               失败
