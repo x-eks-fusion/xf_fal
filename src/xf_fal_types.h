@@ -120,11 +120,16 @@ typedef struct _xf_fal_flash_dev_t {
     uint32_t    addr;                   /*!< flash 设备起始地址 */
     size_t      len;                    /*!< flash 设备起始地址之后的长度 */
     /**
-     * @brief 扇区大小。扇区是最小擦除大小。单位: byte.
+     * @brief 扇区大小。扇区大小是最小擦除大小。单位: byte.
      */
     size_t      sector_size;
     /**
-     * @brief  最小读写单元大小，单位: byte.
+     * @brief 页大小。页大小是单次写入时无需等待的最大大小。单位: byte.
+     * 通常为 256 字节。
+     */
+    size_t      page_size;
+    /**
+     * @brief  最小读写单元大小，读写时需要以此大小为单位读写，单位: byte.
      * 可能的值：
      * - 1      stm32f2/f4，或者一些 flash(W25Q128)
      * - 2

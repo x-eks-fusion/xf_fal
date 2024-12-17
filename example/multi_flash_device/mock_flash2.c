@@ -55,6 +55,7 @@ static const xf_fal_flash_dev_t mock_flash_dev = {
     .addr           = MOCK_FLASH2_START_ADDR,
     .len            = MOCK_FLASH2_LEN,
     .sector_size    = MOCK_FLASH2_SECTOR_SIZE,
+    .page_size      = MOCK_FLASH2_PAGE_SIZE,
     .io_size        = MOCK_FLASH2_IO_SIZE,
     .ops.init       = mock_flash_init,
     .ops.deinit     = mock_flash_deinit,

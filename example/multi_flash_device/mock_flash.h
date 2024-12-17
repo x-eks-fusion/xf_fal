@@ -26,12 +26,14 @@ extern "C" {
 #define MOCK_FLASH1_START_ADDR          (0)
 #define MOCK_FLASH1_LEN                 (4 * 1024 * 1024)
 #define MOCK_FLASH1_SECTOR_SIZE         (4 * 1024)
+#define MOCK_FLASH1_PAGE_SIZE           (256)
 #define MOCK_FLASH1_IO_SIZE             (1)
 
 #define MOCK_FLASH2_NAME                "mock_flash2"
 #define MOCK_FLASH2_START_ADDR          (4 * 1024)
 #define MOCK_FLASH2_LEN                 (8 * 1024 * 1024)
 #define MOCK_FLASH2_SECTOR_SIZE         (4 * 1024)
+#define MOCK_FLASH2_PAGE_SIZE           (256)
 #define MOCK_FLASH2_IO_SIZE             (1)
 
 #define MOCK_FLASH1_PART_TABLE1                                         \
