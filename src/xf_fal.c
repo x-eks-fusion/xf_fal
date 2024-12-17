@@ -548,20 +548,42 @@ void xf_fal_show_part_table(void)
 {
     const xf_fal_partition_t *p_table;
     size_t table_len;
+    const xf_fal_partition_t *part;
     size_t i;
     size_t j;
     char *item1                 = "name";
     char *item2                 = "flash_dev";
-    const xf_fal_partition_t *part;
+    size_t part_name_max        = strlen(item1);
+    size_t flash_dev_name_max   = strlen(item2);
+    size_t len_max;
 
     if (!xf_fal_check_register_state()) {
         return;
     }
 
+    for (i = 0; i < XF_FAL_PARTITION_TABLE_NUM; i++) {
+        p_table     = sp_fal()->partition_table[i];
+        table_len   = sp_fal()->partition_table_len[i];
+        if ((NULL == p_table) || (0 == table_len)) {
+            continue;
+        }
+        for (j = 0; j < table_len; j++) {
+            part = &p_table[j];
+            len_max = strnlen(part->name, XF_FAL_DEV_NAME_MAX);
+            if (part_name_max < len_max) {
+                part_name_max = len_max;
+            }
+            len_max = strnlen(part->flash_name, XF_FAL_DEV_NAME_MAX);
+            if (flash_dev_name_max < len_max) {
+                flash_dev_name_max = len_max;
+            }
+        }
+    }
+
     XF_LOGI(TAG, "==================== FAL partition table ===================");
     XF_LOGI(TAG, "| %-*.*s | %-*.*s |   offset   |    length  |",
-            (int)XF_FAL_DEV_NAME_MAX, XF_FAL_DEV_NAME_MAX, item1,
-            (int)XF_FAL_DEV_NAME_MAX, XF_FAL_DEV_NAME_MAX, item2);
+            (int)part_name_max, XF_FAL_DEV_NAME_MAX, item1,
+            (int)flash_dev_name_max, XF_FAL_DEV_NAME_MAX, item2);
     XF_LOGI(TAG, "-------------------------------------------------------------");
     for (i = 0; i < XF_FAL_PARTITION_TABLE_NUM; i++) {
         p_table     = sp_fal()->partition_table[i];
@@ -572,8 +594,8 @@ void xf_fal_show_part_table(void)
         for (j = 0; j < table_len; j++) {
             part = &p_table[j];
             XF_LOGI(TAG, "| %-*.*s | %-*.*s | 0x%08lx | 0x%08lx |",
-                    (int)XF_FAL_DEV_NAME_MAX, XF_FAL_DEV_NAME_MAX, part->name,
-                    (int)XF_FAL_DEV_NAME_MAX, XF_FAL_DEV_NAME_MAX, part->flash_name,
+                    (int)part_name_max, XF_FAL_DEV_NAME_MAX, part->name,
+                    (int)flash_dev_name_max, XF_FAL_DEV_NAME_MAX, part->flash_name,
                     part->offset, part->len);
         }
     }
