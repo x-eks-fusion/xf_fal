@@ -1,10 +1,24 @@
 add_rules("mode.debug", "mode.release")
 includes("xf_utils/xmake.lua")
 
-target("xf_fal")
-    set_kind("binary")
-    add_xf_utils("xf_utils")
-    add_files("src/*.c")
-    add_files("example/*.c")
+-- xf_fal 所有的内容
+function add_xf_fal() 
+    add_xf_utils("xf_utils/xf_utils")
+    add_files("src/**.c")
     add_includedirs("src")
-    add_includedirs("example")
+end 
+
+-- 模板化添加示例工程
+function add_target(name) 
+    target(name)
+        set_kind("binary")
+        add_cflags("-Wall")
+        add_cflags("-std=gnu99 -O0")
+        add_xf_fal()
+        add_files(string.format("example/%s/*.c", name))
+        add_includedirs(string.format("example/%s", name))
+end 
+
+
+add_target("base")
+add_target("multi_flash_device")

@@ -22,8 +22,44 @@ extern "C" {
 
 /* ==================== [Defines] =========================================== */
 
+/* XF_FAL_ENABLE 无需对接 */
+
+#if !defined(XF_FAL_LOCK_DISABLE) || (XF_FAL_LOCK_DISABLE)
+#   define XF_FAL_LOCK_IS_ENABLE        0
+#else
+#   define XF_FAL_LOCK_IS_ENABLE        1
+#endif
+
+#ifndef XF_FAL_FLASH_DEVICE_NUM
+#   define XF_FAL_FLASH_DEVICE_NUM      4
+#endif
+
+#ifndef XF_FAL_PARTITION_TABLE_NUM
+#   define XF_FAL_PARTITION_TABLE_NUM   4
+#endif
+
 #ifndef XF_FAL_DEV_NAME_MAX
-#define XF_FAL_DEV_NAME_MAX 24
+#   define XF_FAL_DEV_NAME_MAX          24
+#endif
+
+#ifndef XF_FAL_CACHE_NUM
+#   define XF_FAL_CACHE_NUM             16
+#endif
+
+#ifndef XF_FAL_DEFAULT_FLASH_DEVICE_NAME
+#   define XF_FAL_DEFAULT_FLASH_DEVICE_NAME     "default_flash"
+#endif
+
+#ifndef XF_FAL_DEFAULT_PARTITION_NAME
+#   define XF_FAL_DEFAULT_PARTITION_NAME        "default_part"
+#endif
+
+#ifndef XF_FAL_DEFAULT_PARTITION_OFFSET
+#   define XF_FAL_DEFAULT_PARTITION_OFFSET      0
+#endif
+
+#ifndef XF_FAL_DEFAULT_PARTITION_LENGTH
+#   define XF_FAL_DEFAULT_PARTITION_LENGTH      4096
 #endif
 
 /* ==================== [Typedefs] ========================================== */
