@@ -557,10 +557,6 @@ void xf_fal_show_part_table(void)
     size_t flash_dev_name_max   = strlen(item2);
     size_t len_max;
 
-    if (!xf_fal_check_register_state()) {
-        return;
-    }
-
     for (i = 0; i < XF_FAL_PARTITION_TABLE_NUM; i++) {
         p_table     = sp_fal()->partition_table[i];
         table_len   = sp_fal()->partition_table_len[i];
