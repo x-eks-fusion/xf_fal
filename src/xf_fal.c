@@ -331,7 +331,7 @@ const xf_fal_flash_dev_t *xf_fal_flash_device_find(const char *name)
         if (!flash_device) {
             continue;
         }
-        if (0 == strncmp(name, flash_device->name, XF_FAL_DEV_NAME_MAX)) {
+        if (0 == xf_strncmp(name, flash_device->name, XF_FAL_DEV_NAME_MAX)) {
             return flash_device;
         }
     }
@@ -385,7 +385,7 @@ const xf_fal_partition_t *xf_fal_partition_find(const char *name)
             continue;
         }
         for (j = 0; j < table_len; j++) {
-            if (0 == strncmp(name, p_table[j].name, XF_FAL_DEV_NAME_MAX)) {
+            if (0 == xf_strncmp(name, p_table[j].name, XF_FAL_DEV_NAME_MAX)) {
                 part = &p_table[j];
                 goto l_unlock_ret;
             }
@@ -540,11 +540,11 @@ void xf_fal_show_part_table(void)
         }
         for (j = 0; j < table_len; j++) {
             part = &p_table[j];
-            len_max = strnlen(part->name, XF_FAL_DEV_NAME_MAX);
+            len_max = xf_strlen(part->name);
             if (part_name_max < len_max) {
                 part_name_max = len_max;
             }
-            len_max = strnlen(part->flash_name, XF_FAL_DEV_NAME_MAX);
+            len_max = xf_strlen(part->flash_name);
             if (flash_dev_name_max < len_max) {
                 flash_dev_name_max = len_max;
             }
