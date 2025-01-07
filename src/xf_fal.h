@@ -44,6 +44,20 @@ extern "C" {
  */
 
 /**
+ * @brief 更新分区表中的分区与关联的 flash 设备的缓存。
+ *
+ * @note xf_fal_init() 内会自动调用一次。
+ * @note 如果在初始化后注册或反注册了分区表或 flash 设备，
+ *       需要调用此接口更新缓存。
+ *
+ * @return xf_err_t
+ *      - XF_OK                 成功
+ *      - XF_FAIL               失败
+ *      - XF_ERR_INVALID_PORT   未注册 xf_fal
+ */
+xf_err_t xf_fal_check_and_update_cache(void);
+
+/**
  * @brief 获取 xf_fal 上下文。
  *
  * @note 通过此接口可获取当前 xf_fal 注册状态、注册的 flash 设备和注册的分区表。
@@ -208,7 +222,7 @@ const xf_fal_partition_t *xf_fal_partition_find(const char *name);
 /**
  * @brief 从指定分区读取数据。
  *
- * @note 读写数据的大小需要是 flash 最小读写颗粒大小的整数倍。
+ * @note 读写数据的大小以及偏移地址需要是 flash 最小读写颗粒大小的整数倍。
  *       见 @ref xf_fal_flash_dev_t.io_size .
  *
  * @param part       分区表中的指定分区。
@@ -229,7 +243,7 @@ xf_err_t xf_fal_partition_read(
 /**
  * @brief 将数据写入指定分区。
  *
- * @note 读写数据的大小需要是 flash 最小读写颗粒大小的整数倍。
+ * @note 读写数据的大小以及偏移地址需要是 flash 最小读写颗粒大小的整数倍。
  *       见 @ref xf_fal_flash_dev_t.io_size .
  * @note 写入前一定要确认目标地址已经被擦除。
  *
@@ -254,10 +268,13 @@ xf_err_t xf_fal_partition_write(
  * @note 擦除数据的大小推荐对齐到 flash 扇区大小的整数倍。
  *       扇区大小见 @ref xf_fal_flash_dev_t.sector_size .
  *       可以通过 xf_fal_flash_device_find_by_part() 获取。
+ * @attention 如果分区偏移地址和 offset 和 size 未对齐到扇区，
+ *            则可能无法擦除。需要看对接的实现。
  *
  * @param part       分区表中的指定分区。
  *                   可以通过 xf_fal_partition_find() 获取。
  * @param offset     待擦除的地址。相对当前分区起始地址的偏移地址。
+ *                   推荐对齐到 flash 扇区大小的整数倍。
  * @param size       要擦除的数据大小，单位：字节。
  * @return xf_err_t
  *      - XF_OK                 成功

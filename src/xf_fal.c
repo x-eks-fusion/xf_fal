@@ -22,16 +22,6 @@
 
 /* ==================== [Static Prototypes] ================================= */
 
-/**
- * @brief 更新分区表中的分区与关联的 flash 设备的缓存。
- *
- * @return xf_err_t
- *      - XF_OK                 成功
- *      - XF_FAIL               失败
- *      - XF_ERR_INVALID_PORT   未注册 xf_fal
- */
-static xf_err_t check_and_update_cache(void);
-
 /* ==================== [Static Variables] ================================== */
 
 static xf_fal_ctx_t     s_fal_ctx = {0};
@@ -116,9 +106,6 @@ xf_err_t xf_fal_register_flash_device(const xf_fal_flash_dev_t *p_dev)
        ) {
         return XF_ERR_INVALID_PORT;
     }
-    if (xf_fal_check_register_state()) {
-        return XF_FAIL;
-    }
 
     XF_FAL_CTX_MUTEX_TRY_INIT();
 
@@ -159,9 +146,6 @@ xf_err_t xf_fal_register_partition_table(
             || ((0 == table_len))) {
         return XF_ERR_INVALID_ARG;
     }
-    if (xf_fal_check_register_state()) {
-        return XF_FAIL;
-    }
 
     XF_FAL_CTX_MUTEX_TRY_INIT();
 
@@ -201,9 +185,6 @@ xf_err_t xf_fal_unregister_flash_device(const xf_fal_flash_dev_t *p_dev)
     if (NULL == p_dev) {
         return XF_ERR_INVALID_ARG;
     }
-    if (xf_fal_check_register_state()) {
-        return XF_FAIL;
-    }
 
     XF_FAL_CTX_MUTEX_TRY_INIT();
 
@@ -236,9 +217,6 @@ xf_err_t xf_fal_unregister_partition_table(const xf_fal_partition_t *p_table)
 
     if (NULL == p_table) {
         return XF_ERR_INVALID_ARG;
-    }
-    if (xf_fal_check_register_state()) {
-        return XF_FAIL;
     }
 
     XF_FAL_CTX_MUTEX_TRY_INIT();
@@ -287,6 +265,7 @@ xf_err_t xf_fal_init(void)
         return XF_ERR_INITED;
     }
 
+    /* 逐个初始化 */
     for (size_t i = 0; i < XF_FAL_FLASH_DEVICE_NUM; i++) {
         device_table = sp_fal()->flash_device_table[i];
         if ((!device_table) || (!device_table->ops.init)) {
@@ -300,7 +279,7 @@ xf_err_t xf_fal_init(void)
                 device_table->addr, (int)device_table->len, (int)device_table->sector_size);
     }
 
-    xf_ret = check_and_update_cache();
+    xf_ret = xf_fal_check_and_update_cache();
     if (xf_ret != XF_OK) {
         XF_LOGE(TAG, "partition init failed.");
         return xf_ret;
@@ -324,7 +303,7 @@ xf_err_t xf_fal_deinit(void)
 
     for (size_t i = 0; i < XF_FAL_FLASH_DEVICE_NUM; i++) {
         device_table = sp_fal()->flash_device_table[i];
-        if ((!device_table) || (!device_table->ops.init)) {
+        if ((!device_table) || (!device_table->ops.deinit)) {
             continue;
         }
         device_table->ops.deinit();
@@ -352,7 +331,7 @@ const xf_fal_flash_dev_t *xf_fal_flash_device_find(const char *name)
         if (!flash_device) {
             continue;
         }
-        if (0 == strncmp(name, flash_device->name, XF_FAL_DEV_NAME_MAX)) {
+        if (0 == xf_strncmp(name, flash_device->name, XF_FAL_DEV_NAME_MAX)) {
             return flash_device;
         }
     }
@@ -366,24 +345,23 @@ const xf_fal_flash_dev_t *xf_fal_flash_device_find_by_part(
     const xf_fal_flash_dev_t *flash_dev = NULL;
     size_t i;
 
-    if (!xf_fal_check_register_state()) {
-        XF_LOGE(TAG, "Not registered.");
-        return NULL;
-    }
     if (!part) {
         return NULL;
     }
 
     XF_FAL_CTX_TRYLOCK__RETURN_ON_FAILURE(NULL);
-
-    for (i = 0; i < sp_fal()->cached_num; i++) {
-        if (sp_fal()->cache[i].partition == part) {
-            flash_dev = sp_fal()->cache[i].flash_dev;
-            goto l_unlock_ret;
+    if (xf_fal_check_register_state()) {
+        for (i = 0; i < sp_fal()->cached_num; i++) {
+            if (sp_fal()->cache[i].partition == part) {
+                flash_dev = sp_fal()->cache[i].flash_dev;
+                break;
+            }
         }
     }
-
-l_unlock_ret:;
+    /* 未注册或未找到时遍历 */
+    if (!flash_dev) {
+        flash_dev = xf_fal_flash_device_find(part->flash_name);
+    }
     XF_FAL_CTX_UNLOCK();
 
     return flash_dev;
@@ -410,7 +388,7 @@ const xf_fal_partition_t *xf_fal_partition_find(const char *name)
             continue;
         }
         for (j = 0; j < table_len; j++) {
-            if (0 == strncmp(name, p_table[j].name, XF_FAL_DEV_NAME_MAX)) {
+            if (0 == xf_strncmp(name, p_table[j].name, XF_FAL_DEV_NAME_MAX)) {
                 part = &p_table[j];
                 goto l_unlock_ret;
             }
@@ -565,11 +543,11 @@ void xf_fal_show_part_table(void)
         }
         for (j = 0; j < table_len; j++) {
             part = &p_table[j];
-            len_max = strnlen(part->name, XF_FAL_DEV_NAME_MAX);
+            len_max = xf_strlen(part->name);
             if (part_name_max < len_max) {
                 part_name_max = len_max;
             }
-            len_max = strnlen(part->flash_name, XF_FAL_DEV_NAME_MAX);
+            len_max = xf_strlen(part->flash_name);
             if (flash_dev_name_max < len_max) {
                 flash_dev_name_max = len_max;
             }
@@ -598,9 +576,7 @@ void xf_fal_show_part_table(void)
     XF_LOGI(TAG, "=============================================================");
 }
 
-/* ==================== [Static Functions] ================================== */
-
-static xf_err_t check_and_update_cache(void)
+xf_err_t xf_fal_check_and_update_cache(void)
 {
     xf_err_t xf_ret = XF_OK;
     const xf_fal_flash_dev_t *flash_dev;
@@ -651,3 +627,5 @@ l_unlock_ret:;
 
     return xf_ret;
 }
+
+/* ==================== [Static Functions] ================================== */

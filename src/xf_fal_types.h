@@ -56,9 +56,12 @@ typedef struct _xf_fal_flash_ops_t {
      *
      * @note xf_fal 只保证读取大小不超过分区长度。
      *       对于跨页的读取，接口需要自行处理。
-     *
+     * @attention xf_fal 对于传入的 src_offset, @b 不 加上 flash 的起始地址。
+     *            对接层需要自行加上 xf_fal_flash_dev_t.addr .
+     * 
      * @param src_offset 要读取的数据的地址。
      *                   已在 xf_fal 内加上分区的偏移地址。
+     *                   若 flash 起始地址不为 0, 对接层需要自行加上 xf_fal_flash_dev_t.addr .
      * @param[out] dst   指向读取缓冲区。
      *                   已在 xf_fal 内判断是否为 NULL.
      * @param size       要读取的数据大小，单位：字节。
@@ -73,9 +76,12 @@ typedef struct _xf_fal_flash_ops_t {
      *
      * @note xf_fal 只保证写入大小不超过分区长度。
      *       对于跨页的写入，接口需要自行处理。
+     * @attention xf_fal 对于传入的 dst_offset, @b 不 加上 flash 的起始地址。
+     *            对接层需要自行加上 xf_fal_flash_dev_t.addr .
      *
      * @param dst_offset 待写入数据的目标地址。
      *                   已在 xf_fal 内加上分区的偏移地址。
+     *                   若 flash 起始地址不为 0, 对接层需要自行加上 xf_fal_flash_dev_t.addr .
      * @param src        指向数据来源缓冲区。
      *                   已在 xf_fal 内判断是否为 NULL.
      * @param size       要写入的数据大小，单位：字节。
@@ -130,12 +136,6 @@ typedef struct _xf_fal_flash_dev_t {
     size_t      page_size;
     /**
      * @brief  最小读写单元大小，读写时需要以此大小为单位读写，单位: byte.
-     * 可能的值：
-     * - 1      stm32f2/f4，或者一些 flash(W25Q128)
-     * - 2
-     * - 4      stm32f1
-     * - 8      stm32l4
-     * - 更大   可能是 nandflash
      * @note 注意不是页大小。
      */
     size_t      io_size;
