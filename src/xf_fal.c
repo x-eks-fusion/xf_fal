@@ -303,7 +303,7 @@ xf_err_t xf_fal_deinit(void)
 
     for (size_t i = 0; i < XF_FAL_FLASH_DEVICE_NUM; i++) {
         device_table = sp_fal()->flash_device_table[i];
-        if ((!device_table) || (!device_table->ops.init)) {
+        if ((!device_table) || (!device_table->ops.deinit)) {
             continue;
         }
         device_table->ops.deinit();
