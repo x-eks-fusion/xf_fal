@@ -345,20 +345,23 @@ const xf_fal_flash_dev_t *xf_fal_flash_device_find_by_part(
     const xf_fal_flash_dev_t *flash_dev = NULL;
     size_t i;
 
-        if (!part) {
+    if (!part) {
         return NULL;
     }
 
     XF_FAL_CTX_TRYLOCK__RETURN_ON_FAILURE(NULL);
-
-    for (i = 0; i < sp_fal()->cached_num; i++) {
-        if (sp_fal()->cache[i].partition == part) {
-            flash_dev = sp_fal()->cache[i].flash_dev;
-            goto l_unlock_ret;
+    if (xf_fal_check_register_state()) {
+        for (i = 0; i < sp_fal()->cached_num; i++) {
+            if (sp_fal()->cache[i].partition == part) {
+                flash_dev = sp_fal()->cache[i].flash_dev;
+                break;
+            }
         }
     }
-
-l_unlock_ret:;
+    /* 未注册或未找到时遍历 */
+    if (!flash_dev) {
+        flash_dev = xf_fal_flash_device_find(part->flash_name);
+    }
     XF_FAL_CTX_UNLOCK();
 
     return flash_dev;
