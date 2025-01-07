@@ -116,9 +116,6 @@ xf_err_t xf_fal_register_flash_device(const xf_fal_flash_dev_t *p_dev)
        ) {
         return XF_ERR_INVALID_PORT;
     }
-    if (xf_fal_check_register_state()) {
-        return XF_FAIL;
-    }
 
     XF_FAL_CTX_MUTEX_TRY_INIT();
 
@@ -159,9 +156,6 @@ xf_err_t xf_fal_register_partition_table(
             || ((0 == table_len))) {
         return XF_ERR_INVALID_ARG;
     }
-    if (xf_fal_check_register_state()) {
-        return XF_FAIL;
-    }
 
     XF_FAL_CTX_MUTEX_TRY_INIT();
 
@@ -201,9 +195,6 @@ xf_err_t xf_fal_unregister_flash_device(const xf_fal_flash_dev_t *p_dev)
     if (NULL == p_dev) {
         return XF_ERR_INVALID_ARG;
     }
-    if (xf_fal_check_register_state()) {
-        return XF_FAIL;
-    }
 
     XF_FAL_CTX_MUTEX_TRY_INIT();
 
@@ -236,9 +227,6 @@ xf_err_t xf_fal_unregister_partition_table(const xf_fal_partition_t *p_table)
 
     if (NULL == p_table) {
         return XF_ERR_INVALID_ARG;
-    }
-    if (xf_fal_check_register_state()) {
-        return XF_FAIL;
     }
 
     XF_FAL_CTX_MUTEX_TRY_INIT();
@@ -366,11 +354,7 @@ const xf_fal_flash_dev_t *xf_fal_flash_device_find_by_part(
     const xf_fal_flash_dev_t *flash_dev = NULL;
     size_t i;
 
-    if (!xf_fal_check_register_state()) {
-        XF_LOGE(TAG, "Not registered.");
-        return NULL;
-    }
-    if (!part) {
+        if (!part) {
         return NULL;
     }
 
