@@ -22,16 +22,6 @@
 
 /* ==================== [Static Prototypes] ================================= */
 
-/**
- * @brief 更新分区表中的分区与关联的 flash 设备的缓存。
- *
- * @return xf_err_t
- *      - XF_OK                 成功
- *      - XF_FAIL               失败
- *      - XF_ERR_INVALID_PORT   未注册 xf_fal
- */
-static xf_err_t check_and_update_cache(void);
-
 /* ==================== [Static Variables] ================================== */
 
 static xf_fal_ctx_t     s_fal_ctx = {0};
@@ -275,6 +265,7 @@ xf_err_t xf_fal_init(void)
         return XF_ERR_INITED;
     }
 
+    /* 逐个初始化 */
     for (size_t i = 0; i < XF_FAL_FLASH_DEVICE_NUM; i++) {
         device_table = sp_fal()->flash_device_table[i];
         if ((!device_table) || (!device_table->ops.init)) {
@@ -288,7 +279,7 @@ xf_err_t xf_fal_init(void)
                 device_table->addr, (int)device_table->len, (int)device_table->sector_size);
     }
 
-    xf_ret = check_and_update_cache();
+    xf_ret = xf_fal_check_and_update_cache();
     if (xf_ret != XF_OK) {
         XF_LOGE(TAG, "partition init failed.");
         return xf_ret;
@@ -582,9 +573,7 @@ void xf_fal_show_part_table(void)
     XF_LOGI(TAG, "=============================================================");
 }
 
-/* ==================== [Static Functions] ================================== */
-
-static xf_err_t check_and_update_cache(void)
+xf_err_t xf_fal_check_and_update_cache(void)
 {
     xf_err_t xf_ret = XF_OK;
     const xf_fal_flash_dev_t *flash_dev;
@@ -635,3 +624,5 @@ l_unlock_ret:;
 
     return xf_ret;
 }
+
+/* ==================== [Static Functions] ================================== */
